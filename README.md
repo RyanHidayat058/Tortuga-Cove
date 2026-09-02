@@ -1,10 +1,10 @@
-# 🏴‍☠️ Tortuga Cove
+# Tortuga Cove
 
 > **Multiplayer Pirate Board Game Platform** built with Laravel 12, Inertia.js, React, and Tailwind CSS.
 
 ---
 
-## ⚓ Overview
+## Overview
 
 **Tortuga Cove** is an interactive, real-time pirate-themed board game tavern where players can register, add crew members (friends), create private game rooms, and compete in pirate board games:
 
@@ -24,7 +24,7 @@
 
 ---
 
-## 🎨 Design System
+## Design System
 
 Tortuga Cove adheres to an exclusive high-contrast 4-color pirate palette in both Light and Dark themes:
 - **`#091540`** (Deep Abyssal Navy)
@@ -34,7 +34,7 @@ Tortuga Cove adheres to an exclusive high-contrast 4-color pirate palette in bot
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 - **Backend**: Laravel 12 (PHP 8.3)
 - **Frontend**: React 18, Inertia.js 2.0
@@ -45,7 +45,7 @@ Tortuga Cove adheres to an exclusive high-contrast 4-color pirate palette in bot
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### 1. Clone the Repository
 ```bash
@@ -85,7 +85,7 @@ Visit the tavern at: [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Run PHPUnit automated test suites:
 ```bash
@@ -99,5 +99,5 @@ vendor/bin/pint --format agent
 
 ---
 
-## 📜 License
+## License
 Licensed under the [MIT License](LICENSE).
