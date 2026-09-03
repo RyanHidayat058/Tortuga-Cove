@@ -49,6 +49,7 @@ class GameController extends Controller
                     'id' => $game->id,
                     'uuid' => $game->uuid,
                     'game_type' => $game->game_type ?? 'splendor',
+                    'difficulty' => $game->difficulty ?? 'normal',
                     'creator_id' => $game->creator_id,
                     'creator' => $game->creator->username ?? 'Unknown',
                     'status' => $game->status,
@@ -72,12 +73,14 @@ class GameController extends Controller
     public function create(Request $request): RedirectResponse
     {
         $request->validate([
-            'game_type' => 'nullable|string|in:splendor,snakes,wordle',
+            'game_type' => 'nullable|string|in:splendor,snakes,wordle,sudoku',
+            'difficulty' => 'nullable|string|in:easy,normal,hard,extreme',
             'max_players' => 'nullable|integer|min:1|max:4',
         ]);
 
         $user = Auth::user();
         $gameType = $request->input('game_type', 'splendor');
+        $difficulty = $request->input('difficulty', 'normal');
         $maxPlayers = $request->input('max_players', 4);
 
         $game = Game::create([
@@ -85,6 +88,7 @@ class GameController extends Controller
             'creator_id' => $user->id,
             'status' => 'waiting',
             'game_type' => $gameType,
+            'difficulty' => $difficulty,
             'max_players' => $maxPlayers,
         ]);
 
@@ -167,6 +171,7 @@ class GameController extends Controller
         $component = match ($game->game_type ?? 'splendor') {
             'snakes' => 'Snakes/GameRoom',
             'wordle' => 'Wordle/GameRoom',
+            'sudoku' => 'Sudoku/GameRoom',
             default => 'Splendor/GameRoom',
         };
 
@@ -179,8 +184,10 @@ class GameController extends Controller
                 'current_player_index' => $game->current_player_index,
                 'winner_id' => $game->winner_id,
                 'board_state' => $game->board_state,
-                'game_type' => $game->game_type,
-                'max_players' => $game->max_players,
+                'game_type' => $game->game_type ?? 'splendor',
+                'difficulty' => $game->difficulty ?? 'normal',
+                'max_players' => $game->max_players ?? 4,
+                'creator' => $game->creator,
             ],
             'gamePlayers' => $game->gamePlayers->map(fn ($gp) => [
                 'user_id' => $gp->user_id,
@@ -421,6 +428,8 @@ class GameController extends Controller
         try {
             if (($game->game_type ?? 'splendor') === 'wordle') {
                 $engine->surrenderWordle($game, Auth::user());
+            } elseif (($game->game_type ?? 'splendor') === 'sudoku') {
+                $engine->surrenderSudoku($game, Auth::user());
             } else {
                 $engine->forfeitGame($game, Auth::user());
             }
@@ -469,6 +478,34 @@ class GameController extends Controller
     }
 
     /**
+     * Action: Fill a cell in Sudoku Tortuga.
+     */
+    public function fillSudokuCell(Request $request, string $uuid, GameEngine $engine): RedirectResponse|JsonResponse
+    {
+        $game = Game::where('uuid', $uuid)->firstOrFail();
+
+        $request->validate([
+            'row' => 'required|integer|min:0|max:8',
+            'col' => 'required|integer|min:0|max:8',
+            'val' => 'required|integer|min:0|max:9',
+        ]);
+
+        try {
+            $engine->fillSudokuCell(
+                $game,
+                Auth::user(),
+                (int) $request->input('row'),
+                (int) $request->input('col'),
+                (int) $request->input('val')
+            );
+
+            return back();
+        } catch (\Exception $e) {
+            return back()->withErrors(['action_error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Action: Vote for / Start Rematch.
      */
     public function rematch(string $uuid, GameEngine $engine): RedirectResponse|JsonResponse
@@ -480,6 +517,8 @@ class GameController extends Controller
             $players = $game->gamePlayers->map->user->all();
             if (($game->game_type ?? 'splendor') === 'wordle') {
                 $engine->rematchWordle($game, $user, $players);
+            } elseif (($game->game_type ?? 'splendor') === 'sudoku') {
+                $engine->rematchSudoku($game, $user, $players);
             }
 
             return back();
@@ -499,6 +538,8 @@ class GameController extends Controller
         try {
             if (($game->game_type ?? 'splendor') === 'wordle') {
                 $engine->declineRematchWordle($game, $user);
+            } elseif (($game->game_type ?? 'splendor') === 'sudoku') {
+                $engine->declineRematchSudoku($game, $user);
             }
 
             return redirect()->route('dashboard');

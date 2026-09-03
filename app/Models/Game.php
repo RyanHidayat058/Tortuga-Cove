@@ -16,6 +16,7 @@ class Game extends Model
         'current_player_index',
         'board_state',
         'game_type',
+        'difficulty',
         'max_players',
     ];
 

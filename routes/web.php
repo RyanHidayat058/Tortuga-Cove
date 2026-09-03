@@ -11,10 +11,13 @@ Route::get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
     // Lobby, Deck, Crew
-    Route::get('/lobby', [GameController::class, 'index'])->name('lobby');
-    Route::get('/dashboard', [GameController::class, 'index'])->name('dashboard');
+    Route::get('/lobby', [GameController::class, 'index'])->name('dashboard');
+    Route::get('/tavern', [GameController::class, 'index'])->name('lobby');
     Route::get('/deck', [GameController::class, 'indexDeck'])->name('deck');
     Route::get('/crew', [GameController::class, 'indexCrew'])->name('crew');
+    Route::get('/dashboard', function () {
+        return redirect()->route('dashboard');
+    });
 
     // Game Room lifecycle
     Route::post('/games', [GameController::class, 'create'])->name('games.create');
@@ -32,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/games/{uuid}/surrender', [GameController::class, 'surrender'])->name('games.surrender');
     Route::post('/games/{uuid}/roll-die', [GameController::class, 'rollDie'])->name('games.roll-die');
     Route::post('/games/{uuid}/guess', [GameController::class, 'submitGuess'])->name('games.guess');
+    Route::post('/games/{uuid}/sudoku/fill', [GameController::class, 'fillSudokuCell'])->name('games.sudoku.fill');
     Route::post('/games/{uuid}/rematch', [GameController::class, 'rematch'])->name('games.rematch');
     Route::post('/games/{uuid}/decline-rematch', [GameController::class, 'declineRematch'])->name('games.decline-rematch');
 

@@ -187,7 +187,50 @@ class GameEngine
                 'finished_count' => 0,
                 'log' => [
                     '⚓ Permainan Sandi Tortuga telah dimulai!',
-                    'Pecahkan 5 huruf sandi rahasia dalam 6 kesempatan sesuai kosakata baku KBBI!',
+                    'Pecahkan 5 huruf sandi rahasia dalam 6 kesempatan sesuai kosakata bahasa Indonesia sehari-hari!',
+                ],
+            ];
+
+            $game->forceFill([
+                'status' => 'playing',
+                'current_player_index' => 0,
+                'board_state' => $boardState,
+            ])->save();
+
+            return;
+        }
+
+        if (($game->game_type ?? 'splendor') === 'sudoku') {
+            $difficulty = $game->difficulty ?? 'normal';
+            $puzzleData = SudokuGenerator::generatePuzzle($difficulty);
+
+            $playerStates = [];
+            foreach ($players as $index => $player) {
+                $playerStates[$player->id] = [
+                    'user_id' => $player->id,
+                    'name' => $player->name,
+                    'index' => $index,
+                    'current_board' => $puzzleData['initial_board'],
+                    'mistakes_count' => 0,
+                    'progress' => (int) round(($puzzleData['clues_count'] / 81) * 100),
+                    'solved' => false,
+                    'surrendered' => false,
+                    'finish_order' => null,
+                ];
+            }
+
+            $boardState = [
+                'game_type' => 'sudoku',
+                'difficulty' => $difficulty,
+                'initial_board' => $puzzleData['initial_board'],
+                'solution_board' => $puzzleData['solution_board'],
+                'clues_count' => $puzzleData['clues_count'],
+                'players' => $playerStates,
+                'finished_count' => 0,
+                'rematch_votes' => [],
+                'log' => [
+                    "🧩 Permainan Sudoku Tortuga ({$difficulty}) telah dimulai!",
+                    'Isi angka 1 hingga 9 tanpa duplikasi di baris, kolom, atau kotak 3x3!',
                 ],
             ];
 
@@ -1106,6 +1149,210 @@ class GameEngine
      * Action: Decline Rematch in Sandi Tortuga (Wordle).
      */
     public function declineRematchWordle(Game $game, User $user): void
+    {
+        $state = $game->board_state;
+        $state['rematch_declined'] = true;
+        $state['declined_by'] = $user->name;
+        $state['log'][] = "👋 Kapten '{$user->name}' telah meninggalkan kapal. Rematch dibatalkan.";
+
+        $game->board_state = $state;
+        $game->save();
+    }
+
+    /**
+     * Action: Fill a cell in Sudoku.
+     */
+    public function fillSudokuCell(Game $game, User $user, int $row, int $col, int $val): void
+    {
+        if ($game->status !== 'playing') {
+            throw new \Exception('Permainan tidak sedang aktif.');
+        }
+
+        if ($row < 0 || $row > 8 || $col < 0 || $col > 8 || $val < 0 || $val > 9) {
+            throw new \Exception('Posisi baris, kolom, atau angka tidak valid.');
+        }
+
+        $state = $game->board_state;
+        $playerId = $user->id;
+
+        if (! isset($state['players'][$playerId])) {
+            throw new \Exception('Anda bukan bagian dari permainan ini.');
+        }
+
+        if (($state['initial_board'][$row][$col] ?? 0) !== 0) {
+            throw new \Exception('Angka petunjuk awal tidak dapat diubah.');
+        }
+
+        $player = &$state['players'][$playerId];
+
+        if ($player['solved'] || $player['surrendered']) {
+            return;
+        }
+
+        // Increment mistakes if filled with incorrect non-zero number
+        $solutionNum = $state['solution_board'][$row][$col] ?? 0;
+        if ($val !== 0 && $val !== $solutionNum) {
+            $player['mistakes_count']++;
+        }
+
+        $player['current_board'][$row][$col] = $val;
+
+        // Calculate progress & correct filled count
+        $correctCount = 0;
+        for ($r = 0; $r < 9; $r++) {
+            for ($c = 0; $c < 9; $c++) {
+                if ($player['current_board'][$r][$c] === $state['solution_board'][$r][$c]) {
+                    $correctCount++;
+                }
+            }
+        }
+
+        $player['progress'] = (int) round(($correctCount / 81) * 100);
+
+        if ($correctCount === 81) {
+            $player['solved'] = true;
+            $finishedCount = ($state['finished_count'] ?? 0) + 1;
+            $state['finished_count'] = $finishedCount;
+            $player['finish_order'] = $finishedCount;
+            $state['log'][] = "🏆 Kapten '{$player['name']}' berhasil menyelesaikan Sudoku ({$player['mistakes_count']} kesalahan) - Juara #{$finishedCount}!";
+
+            if (! $game->winner_id) {
+                $game->winner_id = $playerId;
+            }
+        }
+
+        // Check if all players are finished
+        $allFinished = true;
+        foreach ($state['players'] as $p) {
+            if (! $p['solved'] && ! $p['surrendered']) {
+                $allFinished = false;
+                break;
+            }
+        }
+
+        if ($allFinished) {
+            $game->status = 'finished';
+            $state['log'][] = '⚓ Pertandingan Sudoku Tortuga telah selesai untuk seluruh kru!';
+        }
+
+        $game->board_state = $state;
+        $game->save();
+    }
+
+    /**
+     * Action: Surrender in Sudoku.
+     */
+    public function surrenderSudoku(Game $game, User $user): void
+    {
+        $state = $game->board_state;
+        $playerId = $user->id;
+
+        if (! isset($state['players'][$playerId])) {
+            throw new \Exception('Anda bukan bagian dari permainan ini.');
+        }
+
+        $player = &$state['players'][$playerId];
+
+        if ($player['solved'] || $player['surrendered']) {
+            return;
+        }
+
+        $player['surrendered'] = true;
+        $finishedCount = ($state['finished_count'] ?? 0) + 1;
+        $state['finished_count'] = $finishedCount;
+        $state['log'][] = "🏳️ Kapten '{$player['name']}' mengibarkan bendera putih dan menyerah dalam Sudoku.";
+
+        // Check if all players are finished
+        $allFinished = true;
+        foreach ($state['players'] as $p) {
+            if (! $p['solved'] && ! $p['surrendered']) {
+                $allFinished = false;
+                break;
+            }
+        }
+
+        if ($allFinished) {
+            $game->status = 'finished';
+            $state['log'][] = '⚓ Pertandingan Sudoku Tortuga telah selesai untuk seluruh kru!';
+        }
+
+        $game->board_state = $state;
+        $game->save();
+    }
+
+    /**
+     * Action: Rematch Sudoku.
+     *
+     * @param  array<int, User>  $allPlayers
+     */
+    public function rematchSudoku(Game $game, User $user, array $allPlayers): void
+    {
+        if ($game->status !== 'finished') {
+            throw new \Exception('Rematch hanya bisa dimulai setelah permainan selesai.');
+        }
+
+        $state = $game->board_state;
+        $totalPlayers = count($allPlayers);
+        $playerId = $user->id;
+
+        if (! isset($state['rematch_votes']) || ! is_array($state['rematch_votes'])) {
+            $state['rematch_votes'] = [];
+        }
+
+        if (! in_array($playerId, $state['rematch_votes'], true)) {
+            $state['rematch_votes'][] = $playerId;
+        }
+
+        $allAgreed = count($state['rematch_votes']) >= $totalPlayers;
+
+        if ($allAgreed || $totalPlayers === 1) {
+            $difficulty = $game->difficulty ?? $state['difficulty'] ?? 'normal';
+            $puzzleData = SudokuGenerator::generatePuzzle($difficulty);
+
+            $newPlayerStates = [];
+            foreach ($allPlayers as $index => $player) {
+                $newPlayerStates[$player->id] = [
+                    'user_id' => $player->id,
+                    'name' => $player->name,
+                    'index' => $index,
+                    'current_board' => $puzzleData['initial_board'],
+                    'mistakes_count' => 0,
+                    'progress' => (int) round(($puzzleData['clues_count'] / 81) * 100),
+                    'solved' => false,
+                    'surrendered' => false,
+                    'finish_order' => null,
+                ];
+            }
+
+            $state['initial_board'] = $puzzleData['initial_board'];
+            $state['solution_board'] = $puzzleData['solution_board'];
+            $state['clues_count'] = $puzzleData['clues_count'];
+            $state['players'] = $newPlayerStates;
+            $state['finished_count'] = 0;
+            $state['rematch_votes'] = [];
+            $state['rematch_declined'] = false;
+            $state['declined_by'] = null;
+            $state['log'] = [
+                "🔄 Rematch Sudoku ({$difficulty}) dimulai dengan papan teka-teki baru!",
+            ];
+
+            $game->status = 'playing';
+            $game->winner_id = null;
+            $game->board_state = $state;
+            $game->save();
+
+            return;
+        }
+
+        $state['log'][] = "🗳️ Kapten '{$user->name}' ingin melakukan Rematch (".count($state['rematch_votes'])."/{$totalPlayers} setuju).";
+        $game->board_state = $state;
+        $game->save();
+    }
+
+    /**
+     * Action: Decline Rematch in Sudoku.
+     */
+    public function declineRematchSudoku(Game $game, User $user): void
     {
         $state = $game->board_state;
         $state['rematch_declined'] = true;

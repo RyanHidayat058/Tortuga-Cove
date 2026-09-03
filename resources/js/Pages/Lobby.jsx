@@ -29,11 +29,13 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
     const [splendorPlayers, setSplendorPlayers] = useState(4);
     const [snakesPlayers, setSnakesPlayers] = useState(4);
     const [wordlePlayers, setWordlePlayers] = useState(2);
+    const [sudokuPlayers, setSudokuPlayers] = useState(1);
+    const [sudokuDifficulty, setSudokuDifficulty] = useState('normal');
     const [disbandTarget, setDisbandTarget] = useState(null);
     const [removeTarget, setRemoveTarget] = useState(null);
 
     // Filter, Search, and Pagination States
-    const [lobbyFilter, setLobbyFilter] = useState('all'); // all, splendor, snakes, wordle
+    const [lobbyFilter, setLobbyFilter] = useState('all'); // all, splendor, snakes, wordle, sudoku
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -210,10 +212,11 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
             .catch((err) => console.error('Error sending message:', err));
     };
 
-    const createGame = (gameType, maxPlayers) => {
+    const createGame = (gameType, maxPlayers, difficulty = 'normal') => {
         router.post(route('games.create'), {
             game_type: gameType,
             max_players: maxPlayers,
+            difficulty: difficulty,
         });
     };
 
@@ -304,7 +307,7 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                     <h3 className={`text-base font-black font-mono tracking-widest uppercase mb-4 flex items-center gap-2 border-b pb-3 ${isDark ? 'border-white/20 text-white' : 'border-[#2E438F] text-[#091540]'}`}>
                                         <span>🧭</span> Game Selection Deck
                                     </h3>
-                                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="grid gap-6 md:grid-cols-2">
                                         {/* Card 1: Splendor */}
                                         <div className={`rounded-2xl border-2 p-6 flex flex-col justify-between transition-all shadow-md ${
                                             isDark ? 'bg-[#091540] border-white/30 text-white' : 'bg-white border-[#2E438F] text-[#091540]'
@@ -446,6 +449,69 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {/* Card 4: Sudoku Tortuga */}
+                                        <div className={`rounded-2xl border-2 p-6 flex flex-col justify-between transition-all shadow-md ${
+                                            isDark ? 'bg-[#091540] border-white/30 text-white' : 'bg-white border-[#2E438F] text-[#091540]'
+                                        }`}>
+                                            <div>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-3xl">🧩🔢</span>
+                                                    <span className={`text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg border font-mono ${
+                                                        isDark ? 'bg-[#2E438F] text-[#A6B9FF] border-[#A6B9FF]/40' : 'bg-[#A6B9FF]/30 text-[#091540] border-[#2E438F]'
+                                                    }`}>
+                                                        Logic Puzzle
+                                                    </span>
+                                                </div>
+                                                <h4 className={`text-lg font-black font-mono tracking-wide ${isDark ? 'text-white' : 'text-[#091540]'}`}>
+                                                    SUDOKU TORTUGA
+                                                </h4>
+                                                <p className={`text-xs mt-2.5 leading-relaxed font-medium ${isDark ? 'text-white/80' : 'text-[#091540]/80'}`}>
+                                                    Pecahkan teka-teki kotak angka 9x9 klasik dengan ketajaman strategi logika bajak laut! Mainkan Solo atau adu cepat dalam arena duel Multiplayer hingga 4 Kapten.
+                                                </p>
+                                            </div>
+
+                                            <div className={`mt-6 pt-4 border-t flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 ${isDark ? 'border-white/20' : 'border-[#2E438F]/30'}`}>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <label className={`text-[11px] uppercase font-black font-mono ${isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'}`}>Mode:</label>
+                                                        <select 
+                                                            value={sudokuDifficulty} 
+                                                            onChange={(e) => setSudokuDifficulty(e.target.value)}
+                                                            className={selectClass}
+                                                        >
+                                                            <option value="easy">Easy (Mudah)</option>
+                                                            <option value="normal">Normal (Sedang)</option>
+                                                            <option value="hard">Hard (Sulit)</option>
+                                                            <option value="extreme">Extreme (Ekstrem)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <label className={`text-[11px] uppercase font-black font-mono ${isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'}`}>Crew:</label>
+                                                        <select 
+                                                            value={sudokuPlayers} 
+                                                            onChange={(e) => setSudokuPlayers(parseInt(e.target.value))}
+                                                            className={selectClass}
+                                                        >
+                                                            <option value={1}>1 (Solo)</option>
+                                                            <option value={2}>2 Players</option>
+                                                            <option value={3}>3 Players</option>
+                                                            <option value={4}>4 Players</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => createGame('sudoku', sudokuPlayers, sudokuDifficulty)}
+                                                    className={`inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-xs font-black uppercase tracking-widest transition shadow border-2 hover:scale-[1.02] ${
+                                                        isDark
+                                                            ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-[#A6B9FF]/40'
+                                                            : 'bg-[#2E438F] hover:bg-[#091540] text-white border-[#091540]'
+                                                    }`}
+                                                >
+                                                    Set Sail
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -483,7 +549,7 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                         Captain {game.creator}'s Fleet
                                                     </h4>
                                                     <p className="text-[10px] text-[#2E438F] font-mono mt-0.5 uppercase tracking-widest font-black">
-                                                        {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : (game.game_type === 'wordle' ? '📜 Sandi Tortuga' : '💎 Corsair\'s Cove')}
+                                                        {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : (game.game_type === 'wordle' ? '📜 Sandi Tortuga' : (game.game_type === 'sudoku' ? `🧩 Sudoku Tortuga (${game.difficulty || 'normal'})` : '💎 Corsair\'s Cove'))}
                                                     </p>
                                                     <div className="mt-3">
                                                         <p className={`text-[9px] uppercase tracking-widest font-mono ${textMutedClass}`}>
@@ -566,6 +632,14 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                     >
                                         📜 Sandi Tortuga
                                     </button>
+                                    <button
+                                        onClick={() => setLobbyFilter('sudoku')}
+                                        className={`px-3 py-1.5 border text-xs font-bold font-mono tracking-wider rounded uppercase transition duration-150 ${
+                                            lobbyFilter === 'sudoku' ? tabBtnActive : tabBtnInactive
+                                        }`}
+                                    >
+                                        🧩 Sudoku Tortuga
+                                    </button>
                                 </div>
 
                                 {paginatedLobbies.length === 0 ? (
@@ -598,7 +672,13 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                         <p className={`text-[11px] font-mono mt-0.5 uppercase tracking-widest font-black ${
                                                             isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'
                                                         }`}>
-                                                            {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : (game.game_type === 'wordle' ? '📜 Sandi Tortuga' : "💎 Splendor: Corsair's Cove")}
+                                                            {game.game_type === 'snakes' 
+                                                                ? '🐉 Serpents & Rigging' 
+                                                                : (game.game_type === 'wordle' 
+                                                                    ? '📜 Sandi Tortuga' 
+                                                                    : (game.game_type === 'sudoku' 
+                                                                        ? `🧩 Sudoku Tortuga (${game.difficulty || 'normal'})` 
+                                                                        : "💎 Splendor: Corsair's Cove"))}
                                                         </p>
 
                                                         <div className="mt-4">
