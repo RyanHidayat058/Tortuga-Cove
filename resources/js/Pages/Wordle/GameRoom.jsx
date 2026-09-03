@@ -950,13 +950,17 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
 
             {/* Finished Game Summary Modal */}
             <Modal show={showVictoryModal && status === 'finished'} onClose={() => setShowVictoryModal(false)} maxWidth="md">
-                <div className={`p-6 ${isDark ? 'bg-[#091540] text-white' : 'bg-white text-[#091540]'}`}>
+                <div className={`p-6 border-2 rounded-2xl shadow-2xl ${
+                    isDark ? 'bg-[#091540] border-white/20 text-white' : 'bg-white border-[#2E438F] text-[#091540]'
+                }`}>
                     <div className="text-center mb-6">
                         <span className="text-5xl block animate-bounce mb-2">🏆</span>
-                        <h3 className="text-lg font-black font-mono tracking-widest uppercase text-emerald-400">
+                        <h3 className={`text-lg font-black font-mono tracking-widest uppercase ${
+                            isDark ? 'text-emerald-400' : 'text-emerald-700'
+                        }`}>
                             Pertandingan Sandi Selesai!
                         </h3>
-                        <p className="text-xs opacity-80 font-mono mt-1">
+                        <p className={`text-xs font-mono mt-1 ${isDark ? 'text-white/80' : 'text-[#2E438F]'}`}>
                             Seluruh kapten telah menyelesaikan pelayaran memecahkan sandi Tortuga.
                         </p>
                     </div>
@@ -968,44 +972,81 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                 if (!a.solved && b.solved) return 1;
                                 return (a.finish_order || 99) - (b.finish_order || 99);
                             })
-                            .map((p, idx) => (
-                                <div
-                                    key={p.user_id}
-                                    className={`p-3 rounded-xl border-2 flex items-center justify-between font-mono text-xs ${
-                                        p.solved
-                                            ? 'bg-emerald-950/40 border-emerald-500 text-emerald-200'
-                                            : p.surrendered
-                                            ? 'bg-red-950/40 border-red-500 text-red-200'
-                                            : 'bg-gray-900/40 border-gray-600 text-gray-300'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-black text-sm">#{idx + 1}</span>
+                            .map((p, idx) => {
+                                let rowCardClass = '';
+                                if (p.solved) {
+                                    rowCardClass = isDark
+                                        ? 'bg-emerald-950/60 border-emerald-500 text-emerald-100'
+                                        : 'bg-emerald-50 border-emerald-600 text-emerald-950';
+                                } else if (p.surrendered) {
+                                    rowCardClass = isDark
+                                        ? 'bg-red-950/60 border-red-500 text-red-100'
+                                        : 'bg-red-50 border-red-600 text-red-950';
+                                } else {
+                                    rowCardClass = isDark
+                                        ? 'bg-[#2E438F]/30 border-white/20 text-white'
+                                        : 'bg-[#A6B9FF]/20 border-[#2E438F]/40 text-[#091540]';
+                                }
+
+                                return (
+                                    <div
+                                        key={p.user_id}
+                                        className={`p-3.5 rounded-xl border-2 flex items-center justify-between font-mono text-xs shadow-sm transition ${rowCardClass}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className={`font-black text-sm px-2 py-0.5 rounded-md ${
+                                                isDark ? 'bg-white/10 text-white' : 'bg-[#2E438F]/15 text-[#091540]'
+                                            }`}>
+                                                #{idx + 1}
+                                            </span>
+                                            <div>
+                                                <p className="font-bold text-sm">
+                                                    {p.name || p.user?.name || 'Pirate'} {p.isMe && '(Anda)'}
+                                                </p>
+                                                <p className={`text-[11px] font-bold mt-0.5 ${
+                                                    isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'
+                                                }`}>
+                                                    Kata Rahasia: <strong className="uppercase underline tracking-wider">{p.secret_word || '???'}</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+
                                         <div>
-                                            <p className="font-bold">{p.name || p.user?.name || 'Pirate'} {p.isMe && '(Anda)'}</p>
-                                            <p className="text-[10px] opacity-75">Kata: <strong>{p.secret_word || '???'}</strong></p>
+                                            {p.solved ? (
+                                                <span className={`font-black px-2.5 py-1 rounded-lg border text-xs ${
+                                                    isDark 
+                                                        ? 'bg-emerald-600 text-white border-emerald-400' 
+                                                        : 'bg-emerald-600 text-white border-emerald-700'
+                                                }`}>
+                                                    ✓ {p.guesses?.length || 1}/6 Tebakan
+                                                </span>
+                                            ) : p.surrendered ? (
+                                                <span className={`font-black px-2.5 py-1 rounded-lg border text-xs ${
+                                                    isDark 
+                                                        ? 'bg-red-700 text-white border-red-500' 
+                                                        : 'bg-red-600 text-white border-red-700'
+                                                }`}>
+                                                    🏳️ Menyerah
+                                                </span>
+                                            ) : (
+                                                <span className={`font-black px-2.5 py-1 rounded-lg border text-xs ${
+                                                    isDark 
+                                                        ? 'bg-gray-800 text-gray-200 border-gray-600' 
+                                                        : 'bg-gray-200 text-gray-800 border-gray-400'
+                                                }`}>
+                                                    💀 Gagal
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div>
-                                        {p.solved ? (
-                                            <span className="font-bold text-emerald-400">
-                                                ✓ {p.guesses?.length || 1}/6 Tebakan
-                                            </span>
-                                        ) : p.surrendered ? (
-                                            <span className="font-bold text-red-400">🏳️ Menyerah</span>
-                                        ) : (
-                                            <span className="font-bold text-gray-400">💀 Gagal</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                     </div>
 
                     <div className="flex justify-end gap-3 font-mono">
                         <Link
                             href={route('dashboard')}
-                            className={`w-full text-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition ${
+                            className={`w-full text-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition shadow-md ${
                                 isDark
                                     ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/30'
                                     : 'bg-[#2E438F] hover:bg-[#091540] text-white border-[#091540]'
