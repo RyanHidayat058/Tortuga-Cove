@@ -32,6 +32,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/games/{uuid}/surrender', [GameController::class, 'surrender'])->name('games.surrender');
     Route::post('/games/{uuid}/roll-die', [GameController::class, 'rollDie'])->name('games.roll-die');
     Route::post('/games/{uuid}/guess', [GameController::class, 'submitGuess'])->name('games.guess');
+    Route::post('/games/{uuid}/rematch', [GameController::class, 'rematch'])->name('games.rematch');
+    Route::post('/games/{uuid}/decline-rematch', [GameController::class, 'declineRematch'])->name('games.decline-rematch');
 
     // Poll State
     Route::get('/games/{uuid}/state', [GameController::class, 'state'])->name('games.state');

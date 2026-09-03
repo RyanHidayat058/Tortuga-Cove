@@ -6,6 +6,7 @@ use App\Models\Game;
 use App\Models\GamePlayer;
 use App\Models\User;
 use App\Services\GameEngine;
+use App\Services\WordleWordBank;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -223,5 +224,110 @@ class WordleGameTest extends TestCase
         $this->assertTrue(WordleWordBank::isValidWord('ZIKIR'));
         $this->assertFalse(WordleWordBank::isValidWord('XYZ')); // Too short
         $this->assertFalse(WordleWordBank::isValidWord('XXXXX')); // No vowels
+    }
+
+    public function test_solo_player_can_rematch_instantly_with_new_word(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::create([
+            'uuid' => 'wordle-solo-rematch-test',
+            'creator_id' => $user->id,
+            'status' => 'finished',
+            'game_type' => 'wordle',
+            'max_players' => 1,
+            'board_state' => [
+                'game_type' => 'wordle',
+                'players' => [
+                    $user->id => [
+                        'user_id' => $user->id,
+                        'name' => $user->name,
+                        'index' => 0,
+                        'secret_word' => 'KAPAL',
+                        'guesses' => [['word' => 'KAPAL', 'colors' => ['green', 'green', 'green', 'green', 'green']]],
+                        'keyboard' => ['K' => 'green'],
+                        'solved' => true,
+                        'failed' => false,
+                        'surrendered' => false,
+                        'finish_order' => 1,
+                    ],
+                ],
+                'finished_count' => 1,
+                'log' => [],
+            ],
+        ]);
+        GamePlayer::create(['game_id' => $game->id, 'user_id' => $user->id, 'player_index' => 0]);
+
+        $response = $this->actingAs($user)->post(route('games.rematch', $game->uuid));
+        $response->assertSessionHasNoErrors();
+
+        $game->refresh();
+        $this->assertEquals('playing', $game->status);
+        $this->assertCount(0, $game->board_state['players'][$user->id]['guesses']);
+        $this->assertFalse($game->board_state['players'][$user->id]['solved']);
+        $this->assertNotEmpty($game->board_state['players'][$user->id]['secret_word']);
+        $this->assertEquals(5, strlen($game->board_state['players'][$user->id]['secret_word']));
+    }
+
+    public function test_multiplayer_rematch_requires_all_players_to_agree(): void
+    {
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        $game = Game::create([
+            'uuid' => 'wordle-multi-rematch-test',
+            'creator_id' => $user1->id,
+            'status' => 'finished',
+            'game_type' => 'wordle',
+            'max_players' => 2,
+            'board_state' => [
+                'game_type' => 'wordle',
+                'players' => [
+                    $user1->id => [
+                        'user_id' => $user1->id,
+                        'name' => $user1->name,
+                        'index' => 0,
+                        'secret_word' => 'KAPAL',
+                        'guesses' => [],
+                        'keyboard' => [],
+                        'solved' => true,
+                        'failed' => false,
+                        'surrendered' => false,
+                        'finish_order' => 1,
+                    ],
+                    $user2->id => [
+                        'user_id' => $user2->id,
+                        'name' => $user2->name,
+                        'index' => 1,
+                        'secret_word' => 'BADAI',
+                        'guesses' => [],
+                        'keyboard' => [],
+                        'solved' => true,
+                        'failed' => false,
+                        'surrendered' => false,
+                        'finish_order' => 2,
+                    ],
+                ],
+                'finished_count' => 2,
+                'log' => [],
+            ],
+        ]);
+        GamePlayer::create(['game_id' => $game->id, 'user_id' => $user1->id, 'player_index' => 0]);
+        GamePlayer::create(['game_id' => $game->id, 'user_id' => $user2->id, 'player_index' => 1]);
+
+        // Player 1 votes rematch
+        $this->actingAs($user1)->post(route('games.rematch', $game->uuid));
+        $game->refresh();
+        $this->assertEquals('finished', $game->status);
+        $this->assertContains($user1->id, $game->board_state['rematch_votes']);
+        $this->assertCount(1, $game->board_state['rematch_votes']);
+
+        // Player 2 votes rematch -> game restarts!
+        $this->actingAs($user2)->post(route('games.rematch', $game->uuid));
+        $game->refresh();
+        $this->assertEquals('playing', $game->status);
+        $this->assertFalse($game->board_state['players'][$user1->id]['solved']);
+        $this->assertFalse($game->board_state['players'][$user2->id]['solved']);
+        $this->assertCount(0, $game->board_state['players'][$user1->id]['guesses']);
+        $this->assertCount(0, $game->board_state['players'][$user2->id]['guesses']);
     }
 }

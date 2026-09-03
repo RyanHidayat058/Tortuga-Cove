@@ -199,13 +199,20 @@ class WordleWordBank
     }
 
     /**
-     * Get a random 5-letter target secret word.
+     * Get a random 5-letter target secret word, avoiding given excluded words if possible.
+     *
+     * @param  array<int, string>  $excludeWords
      */
-    public static function getRandomTargetWord(): string
+    public static function getRandomTargetWord(array $excludeWords = []): string
     {
         $words = array_values(array_filter(self::$targetWords, fn ($w) => strlen($w) === 5));
 
-        return $words[array_rand($words)];
+        $normalizedExcludes = array_map(fn ($w) => self::normalize($w), $excludeWords);
+        $filtered = array_values(array_filter($words, fn ($w) => ! in_array($w, $normalizedExcludes, true)));
+
+        $pool = count($filtered) > 0 ? $filtered : $words;
+
+        return $pool[array_rand($pool)];
     }
 
     /**

@@ -41,6 +41,10 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                     if (data && data.status) {
                         if (data.status !== status) {
                             router.reload({ only: ['game', 'gamePlayers'] });
+                            if (data.status === 'playing') {
+                                setShowVictoryModal(false);
+                                setCurrentGuess('');
+                            }
                         }
                         if (data.board_state) {
                             setLocalBoardState(data.board_state);
@@ -204,6 +208,47 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                 },
             }
         );
+    };
+
+    // Rematch actions
+    const rematchVotes = localBoardState?.rematch_votes || [];
+    const hasVotedRematch = rematchVotes.includes(authUserId);
+    const rematchDeclined = localBoardState?.rematch_declined || false;
+    const declinedBy = localBoardState?.declined_by || 'Seorang kapten';
+
+    const handleRematch = () => {
+        setIsSubmitting(true);
+        router.post(
+            route('games.rematch', uuid),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setIsSubmitting(false);
+                    setCurrentGuess('');
+                    if (isSolo) {
+                        setShowVictoryModal(false);
+                        showToast('⚓ Ronde baru dimulai! Kata sandi baru telah disiapkan.');
+                    } else {
+                        showToast('🗳️ Suara rematch dikirim! Menunggu persetujuan seluruh kru...');
+                    }
+                },
+                onError: (errors) => {
+                    setIsSubmitting(false);
+                    if (errors.action_error) {
+                        showToast(errors.action_error);
+                    }
+                },
+            }
+        );
+    };
+
+    const handleDeclineRematch = () => {
+        router.post(route('games.decline-rematch', uuid), {}, {
+            onSuccess: () => {
+                router.visit(route('dashboard'));
+            },
+        });
     };
 
     // Keyboard physical event listener
@@ -675,6 +720,14 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                             >
                                 📜 Aturan
                             </button>
+                            {status === 'finished' && (
+                                <button
+                                    onClick={() => setShowVictoryModal(true)}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-black uppercase font-mono border-2 bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 transition flex items-center gap-1 shadow-md animate-pulse"
+                                >
+                                    🏆 Hasil & Rematch
+                                </button>
+                            )}
                             {!isMyTurnFinished && status === 'playing' && (
                                 <button
                                     onClick={() => setShowSurrenderConfirm(true)}
@@ -1043,17 +1096,47 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                             })}
                     </div>
 
-                    <div className="flex justify-end gap-3 font-mono">
-                        <Link
-                            href={route('dashboard')}
-                            className={`w-full text-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition shadow-md ${
+                    {rematchDeclined && (
+                        <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500 text-red-300 font-mono text-xs text-center animate-pulse">
+                            ⚠️ Kapten <strong>{declinedBy}</strong> telah meninggalkan kapal. Rematch dibatalkan.
+                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 font-mono">
+                        <button
+                            type="button"
+                            onClick={handleDeclineRematch}
+                            className={`flex-1 text-center px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition shadow-md ${
                                 isDark
-                                    ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/30'
-                                    : 'bg-[#2E438F] hover:bg-[#091540] text-white border-[#091540]'
+                                    ? 'bg-red-950/40 hover:bg-red-900/60 text-red-200 border-red-500/40'
+                                    : 'bg-red-50 hover:bg-red-100 text-red-700 border-red-300'
                             }`}
                         >
                             ⚓ Kembali ke Tavern
-                        </Link>
+                        </button>
+
+                        {!rematchDeclined && (
+                            <button
+                                type="button"
+                                disabled={isSubmitting || (hasVotedRematch && !isSolo)}
+                                onClick={handleRematch}
+                                className={`flex-1 text-center px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition shadow-md flex items-center justify-center gap-2 ${
+                                    hasVotedRematch && !isSolo
+                                        ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 cursor-not-allowed animate-pulse'
+                                        : isDark
+                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-800'
+                                }`}
+                            >
+                                {isSolo ? (
+                                    <span>🔄 Main Lagi (Sandi Baru)</span>
+                                ) : hasVotedRematch ? (
+                                    <span>⏳ Menunggu Kru... ({rematchVotes.length}/{totalPlayers})</span>
+                                ) : (
+                                    <span>🔄 Setuju Rematch ({rematchVotes.length}/{totalPlayers})</span>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </Modal>

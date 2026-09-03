@@ -467,4 +467,43 @@ class GameController extends Controller
             return back()->withErrors(['action_error' => $e->getMessage()]);
         }
     }
+
+    /**
+     * Action: Vote for / Start Rematch.
+     */
+    public function rematch(string $uuid, GameEngine $engine): RedirectResponse|JsonResponse
+    {
+        $game = Game::with(['gamePlayers.user'])->where('uuid', $uuid)->firstOrFail();
+        $user = Auth::user();
+
+        try {
+            $players = $game->gamePlayers->map->user->all();
+            if (($game->game_type ?? 'splendor') === 'wordle') {
+                $engine->rematchWordle($game, $user, $players);
+            }
+
+            return back();
+        } catch (\Exception $e) {
+            return back()->withErrors(['action_error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Action: Decline Rematch and return to tavern.
+     */
+    public function declineRematch(string $uuid, GameEngine $engine): RedirectResponse
+    {
+        $game = Game::where('uuid', $uuid)->firstOrFail();
+        $user = Auth::user();
+
+        try {
+            if (($game->game_type ?? 'splendor') === 'wordle') {
+                $engine->declineRematchWordle($game, $user);
+            }
+
+            return redirect()->route('dashboard');
+        } catch (\Exception $e) {
+            return redirect()->route('dashboard');
+        }
+    }
 }

@@ -1016,4 +1016,103 @@ class GameEngine
         $game->board_state = $state;
         $game->save();
     }
+
+    /**
+     * Action: Vote for Rematch in Sandi Tortuga (Wordle).
+     *
+     * @param  array<int, User>  $allPlayers
+     */
+    public function rematchWordle(Game $game, User $user, array $allPlayers): void
+    {
+        if ($game->status !== 'finished') {
+            throw new \Exception('Rematch hanya bisa dimulai setelah permainan selesai.');
+        }
+
+        $state = $game->board_state;
+        $totalPlayers = count($allPlayers);
+        $playerId = $user->id;
+
+        // Ensure rematch_votes exists
+        if (! isset($state['rematch_votes']) || ! is_array($state['rematch_votes'])) {
+            $state['rematch_votes'] = [];
+        }
+
+        if (! in_array($playerId, $state['rematch_votes'], true)) {
+            $state['rematch_votes'][] = $playerId;
+        }
+
+        // Check if all players (or solo player) voted rematch
+        $allAgreed = count($state['rematch_votes']) >= $totalPlayers;
+
+        if ($allAgreed || $totalPlayers === 1) {
+            // Collect previous secret words to avoid repeating them
+            $prevSecretWords = [];
+            foreach ($state['players'] as $p) {
+                if (! empty($p['secret_word'])) {
+                    $prevSecretWords[] = $p['secret_word'];
+                }
+            }
+
+            $newPlayerStates = [];
+            $usedWordsInRound = [];
+
+            foreach ($allPlayers as $index => $player) {
+                $playerPrevWord = $state['players'][$player->id]['secret_word'] ?? null;
+                $excludeWords = array_unique(array_merge($usedWordsInRound, $playerPrevWord ? [$playerPrevWord] : []));
+
+                do {
+                    $secretWord = WordleWordBank::getRandomTargetWord($excludeWords);
+                } while (in_array($secretWord, $usedWordsInRound, true) && count($usedWordsInRound) < count(WordleWordBank::$targetWords));
+
+                $usedWordsInRound[] = $secretWord;
+
+                $newPlayerStates[$player->id] = [
+                    'user_id' => $player->id,
+                    'name' => $player->name,
+                    'index' => $index,
+                    'secret_word' => $secretWord,
+                    'guesses' => [],
+                    'keyboard' => [],
+                    'solved' => false,
+                    'failed' => false,
+                    'surrendered' => false,
+                    'finish_order' => null,
+                ];
+            }
+
+            $state['players'] = $newPlayerStates;
+            $state['finished_count'] = 0;
+            $state['rematch_votes'] = [];
+            $state['rematch_declined'] = false;
+            $state['declined_by'] = null;
+            $state['log'] = [
+                '🔄 Rematch dimulai! Seluruh kapten bersiap dengan sandi kata baru!',
+            ];
+
+            $game->status = 'playing';
+            $game->winner_id = null;
+            $game->board_state = $state;
+            $game->save();
+
+            return;
+        }
+
+        $state['log'][] = "🗳️ Kapten '{$user->name}' ingin melakukan Rematch (".count($state['rematch_votes'])."/{$totalPlayers} setuju).";
+        $game->board_state = $state;
+        $game->save();
+    }
+
+    /**
+     * Action: Decline Rematch in Sandi Tortuga (Wordle).
+     */
+    public function declineRematchWordle(Game $game, User $user): void
+    {
+        $state = $game->board_state;
+        $state['rematch_declined'] = true;
+        $state['declined_by'] = $user->name;
+        $state['log'][] = "👋 Kapten '{$user->name}' telah meninggalkan kapal. Rematch dibatalkan.";
+
+        $game->board_state = $state;
+        $game->save();
+    }
 }
