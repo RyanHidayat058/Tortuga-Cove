@@ -11,3 +11,13 @@
 .animate-shake {
     animation: shake 0.5s ease-in-out;
 }
+
+.grid-cols-9 {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+}
+
+.grid-cols-sudoku {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-rows: repeat(9, minmax(0, 1fr));
+}

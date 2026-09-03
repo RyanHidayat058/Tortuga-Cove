@@ -658,7 +658,14 @@ export default function GameRoom({
                                 )}
 
                                 {/* 9x9 Sudoku Board Grid */}
-                                <div className="aspect-square w-full max-w-md mx-auto grid grid-cols-9 border-4 border-[#2E438F] rounded-xl overflow-hidden shadow-2xl bg-black/10">
+                                <div
+                                    className="aspect-square w-full max-w-[420px] mx-auto border-4 border-[#2E438F] rounded-2xl overflow-hidden shadow-2xl bg-black/10 select-none"
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
+                                        gridTemplateRows: 'repeat(9, minmax(0, 1fr))',
+                                    }}
+                                >
                                     {myCurrentBoard.map((rowArr, r) =>
                                         rowArr.map((cellVal, c) => {
                                             const isInitial = initialBoard[r][c] !== 0;
@@ -673,13 +680,13 @@ export default function GameRoom({
                                             const borderRight = (c + 1) % 3 === 0 && c !== 8 ? 'border-r-2 border-r-[#2E438F]' : 'border-r border-r-current/15';
                                             const borderBottom = (r + 1) % 3 === 0 && r !== 8 ? 'border-b-2 border-b-[#2E438F]' : 'border-b border-b-current/15';
 
-                                            let cellBg = '';
+                                            let cellBg = isDark ? 'bg-[#091540]/60' : 'bg-white';
                                             if (isSelected) {
                                                 cellBg = 'bg-[#2E438F] text-white ring-2 ring-[#A6B9FF] z-10';
                                             } else if (isSameNumber) {
-                                                cellBg = isDark ? 'bg-indigo-900/60 text-[#A6B9FF]' : 'bg-indigo-100 text-[#091540]';
+                                                cellBg = isDark ? 'bg-indigo-900/70 text-[#A6B9FF]' : 'bg-indigo-100 text-[#091540]';
                                             } else if (isSameRowOrCol || isSameBox) {
-                                                cellBg = isDark ? 'bg-white/5' : 'bg-slate-100/70';
+                                                cellBg = isDark ? 'bg-white/10' : 'bg-slate-100';
                                             }
 
                                             return (
@@ -687,7 +694,7 @@ export default function GameRoom({
                                                     key={`${r}-${c}`}
                                                     type="button"
                                                     onClick={() => setSelectedCell([r, c])}
-                                                    className={`aspect-square flex items-center justify-center font-mono font-black text-sm sm:text-base md:text-lg select-none transition-colors ${borderRight} ${borderBottom} ${cellBg} ${
+                                                    className={`w-full h-full p-0 m-0 flex items-center justify-center font-mono font-black text-sm sm:text-base md:text-lg select-none transition-colors ${borderRight} ${borderBottom} ${cellBg} ${
                                                         isInitial
                                                             ? isDark
                                                                 ? 'text-white'
@@ -705,14 +712,20 @@ export default function GameRoom({
                                 </div>
 
                                 {/* Virtual Keypad Controls */}
-                                <div className="mt-6 space-y-2 max-w-md mx-auto">
-                                    <div className="grid grid-cols-9 gap-1 sm:gap-1.5 font-mono">
+                                <div className="mt-6 space-y-2 max-w-[420px] mx-auto">
+                                    <div
+                                        className="gap-1 sm:gap-1.5 font-mono"
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
+                                        }}
+                                    >
                                         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                                             <button
                                                 key={num}
                                                 type="button"
                                                 onClick={() => handleNumberInput(num)}
-                                                className={`py-2.5 rounded-xl text-sm font-black border-2 transition active:scale-95 shadow ${
+                                                className={`py-2.5 rounded-xl text-sm font-black border-2 transition active:scale-95 shadow flex items-center justify-center ${
                                                     isDark
                                                         ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/20'
                                                         : 'bg-white hover:bg-[#2E438F] hover:text-white text-[#091540] border-[#2E438F]'
@@ -801,7 +814,14 @@ export default function GameRoom({
                                                     )}
 
                                                     {/* Opponent Mini 9x9 Grid */}
-                                                    <div className="aspect-square w-full max-w-[200px] mx-auto grid grid-cols-9 border-2 border-[#2E438F] rounded-lg overflow-hidden bg-black/10">
+                                                    <div
+                                                        className="aspect-square w-full max-w-[200px] mx-auto border-2 border-[#2E438F] rounded-lg overflow-hidden bg-black/10 select-none"
+                                                        style={{
+                                                            display: 'grid',
+                                                            gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
+                                                            gridTemplateRows: 'repeat(9, minmax(0, 1fr))',
+                                                        }}
+                                                    >
                                                         {oppBoard.map((rArr, r) =>
                                                             rArr.map((val, c) => {
                                                                 const isInit = initialBoard[r][c] !== 0;
@@ -811,7 +831,7 @@ export default function GameRoom({
                                                                 return (
                                                                     <div
                                                                         key={`opp-${r}-${c}`}
-                                                                        className={`aspect-square flex items-center justify-center font-mono text-[9px] ${bRight} ${bBottom} ${
+                                                                        className={`w-full h-full flex items-center justify-center font-mono text-[9px] ${bRight} ${bBottom} ${
                                                                             isInit
                                                                                 ? 'bg-current/10 font-bold'
                                                                                 : val !== 0
