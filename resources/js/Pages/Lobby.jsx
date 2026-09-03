@@ -28,11 +28,12 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
     // Room Creation Options
     const [splendorPlayers, setSplendorPlayers] = useState(4);
     const [snakesPlayers, setSnakesPlayers] = useState(4);
+    const [wordlePlayers, setWordlePlayers] = useState(2);
     const [disbandTarget, setDisbandTarget] = useState(null);
     const [removeTarget, setRemoveTarget] = useState(null);
 
     // Filter, Search, and Pagination States
-    const [lobbyFilter, setLobbyFilter] = useState('all'); // all, splendor, snakes
+    const [lobbyFilter, setLobbyFilter] = useState('all'); // all, splendor, snakes, wordle
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -303,7 +304,7 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                     <h3 className={`text-base font-black font-mono tracking-widest uppercase mb-4 flex items-center gap-2 border-b pb-3 ${isDark ? 'border-white/20 text-white' : 'border-[#2E438F] text-[#091540]'}`}>
                                         <span>🧭</span> Game Selection Deck
                                     </h3>
-                                    <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                                         {/* Card 1: Splendor */}
                                         <div className={`rounded-2xl border-2 p-6 flex flex-col justify-between transition-all shadow-md ${
                                             isDark ? 'bg-[#091540] border-white/30 text-white' : 'bg-white border-[#2E438F] text-[#091540]'
@@ -397,12 +398,60 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {/* Card 3: Sandi Tortuga (Wordle KBBI) */}
+                                        <div className={`rounded-2xl border-2 p-6 flex flex-col justify-between transition-all shadow-md ${
+                                            isDark ? 'bg-[#091540] border-white/30 text-white' : 'bg-white border-[#2E438F] text-[#091540]'
+                                        }`}>
+                                            <div>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-3xl">📜🔤</span>
+                                                    <span className={`text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-lg border font-mono ${
+                                                        isDark ? 'bg-[#2E438F] text-[#A6B9FF] border-[#A6B9FF]/40' : 'bg-[#A6B9FF]/30 text-[#091540] border-[#2E438F]'
+                                                    }`}>
+                                                        Word Battle
+                                                    </span>
+                                                </div>
+                                                <h4 className={`text-lg font-black font-mono tracking-wide ${isDark ? 'text-white' : 'text-[#091540]'}`}>
+                                                    SANDI TORTUGA (TEBAK KATA)
+                                                </h4>
+                                                <p className={`text-xs mt-2.5 leading-relaxed font-medium ${isDark ? 'text-white/80' : 'text-[#091540]/80'}`}>
+                                                    Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 kesempatan sesuai kosakata baku KBBI! Berlomba memecahkan kata rahasia lebih cepat dari kapten lawan dalam arena duel 2x2.
+                                                </p>
+                                            </div>
+
+                                            <div className={`mt-6 pt-4 border-t flex items-center justify-between gap-4 ${isDark ? 'border-white/20' : 'border-[#2E438F]/30'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    <label className={`text-xs uppercase font-black font-mono ${isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'}`}>Crew Limit:</label>
+                                                    <select 
+                                                        value={wordlePlayers} 
+                                                        onChange={(e) => setWordlePlayers(parseInt(e.target.value))}
+                                                        className={selectClass}
+                                                    >
+                                                        <option value={1}>1 Player (Solo)</option>
+                                                        <option value={2}>2 Players</option>
+                                                        <option value={3}>3 Players</option>
+                                                        <option value={4}>4 Players</option>
+                                                    </select>
+                                                </div>
+                                                <button
+                                                    onClick={() => createGame('wordle', wordlePlayers)}
+                                                    className={`inline-flex items-center rounded-xl px-5 py-2.5 text-xs font-black uppercase tracking-widest transition shadow border-2 hover:scale-[1.02] ${
+                                                        isDark
+                                                            ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-[#A6B9FF]/40'
+                                                            : 'bg-[#2E438F] hover:bg-[#091540] text-white border-[#091540]'
+                                                    }`}
+                                                >
+                                                    Set Sail
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/*                         {/* ACTIVE TAB: LOBBY TAVERN */}
+                        {/* ACTIVE TAB: LOBBY TAVERN */}
                         {activeTab === 'lobby' && (
                             <div className="flex flex-col gap-6">
 
@@ -434,7 +483,7 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                         Captain {game.creator}'s Fleet
                                                     </h4>
                                                     <p className="text-[10px] text-[#2E438F] font-mono mt-0.5 uppercase tracking-widest font-black">
-                                                        {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : '💎 Corsair\'s Cove'}
+                                                        {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : (game.game_type === 'wordle' ? '📜 Sandi Tortuga' : '💎 Corsair\'s Cove')}
                                                     </p>
                                                     <div className="mt-3">
                                                         <p className={`text-[9px] uppercase tracking-widest font-mono ${textMutedClass}`}>
@@ -509,6 +558,14 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                     >
                                         🐉 Ular Tangga
                                     </button>
+                                    <button
+                                        onClick={() => setLobbyFilter('wordle')}
+                                        className={`px-3 py-1.5 border text-xs font-bold font-mono tracking-wider rounded uppercase transition duration-150 ${
+                                            lobbyFilter === 'wordle' ? tabBtnActive : tabBtnInactive
+                                        }`}
+                                    >
+                                        📜 Sandi Tortuga
+                                    </button>
                                 </div>
 
                                 {paginatedLobbies.length === 0 ? (
@@ -541,7 +598,7 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                         <p className={`text-[11px] font-mono mt-0.5 uppercase tracking-widest font-black ${
                                                             isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'
                                                         }`}>
-                                                            {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : "💎 Splendor: Corsair's Cove"}
+                                                            {game.game_type === 'snakes' ? '🐉 Serpents & Rigging' : (game.game_type === 'wordle' ? '📜 Sandi Tortuga' : "💎 Splendor: Corsair's Cove")}
                                                         </p>
 
                                                         <div className="mt-4">

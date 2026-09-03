@@ -72,8 +72,8 @@ class GameController extends Controller
     public function create(Request $request): RedirectResponse
     {
         $request->validate([
-            'game_type' => 'nullable|string|in:splendor,snakes',
-            'max_players' => 'nullable|integer|min:2|max:4',
+            'game_type' => 'nullable|string|in:splendor,snakes,wordle',
+            'max_players' => 'nullable|integer|min:1|max:4',
         ]);
 
         $user = Auth::user();
@@ -164,7 +164,11 @@ class GameController extends Controller
             }
         }
 
-        $component = ($game->game_type ?? 'splendor') === 'snakes' ? 'Snakes/GameRoom' : 'Splendor/GameRoom';
+        $component = match ($game->game_type ?? 'splendor') {
+            'snakes' => 'Snakes/GameRoom',
+            'wordle' => 'Wordle/GameRoom',
+            default => 'Splendor/GameRoom',
+        };
 
         return Inertia::render($component, [
             'game' => [
@@ -405,7 +409,11 @@ class GameController extends Controller
         $game = Game::where('uuid', $uuid)->firstOrFail();
 
         try {
-            $engine->forfeitGame($game, Auth::user());
+            if (($game->game_type ?? 'splendor') === 'wordle') {
+                $engine->surrenderWordle($game, Auth::user());
+            } else {
+                $engine->forfeitGame($game, Auth::user());
+            }
 
             return back();
         } catch (\Exception $e) {
@@ -423,6 +431,26 @@ class GameController extends Controller
         try {
             $clientRoll = $request->has('roll') ? (int) $request->input('roll') : null;
             $engine->rollDie($game, Auth::user(), $clientRoll);
+
+            return back();
+        } catch (\Exception $e) {
+            return back()->withErrors(['action_error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Action: Submit a 5-letter guess in Sandi Tortuga (Wordle).
+     */
+    public function submitGuess(Request $request, string $uuid, GameEngine $engine): RedirectResponse|JsonResponse
+    {
+        $game = Game::where('uuid', $uuid)->firstOrFail();
+
+        $request->validate([
+            'guess' => 'required|string|size:5',
+        ]);
+
+        try {
+            $engine->submitWordleGuess($game, Auth::user(), $request->input('guess'));
 
             return back();
         } catch (\Exception $e) {

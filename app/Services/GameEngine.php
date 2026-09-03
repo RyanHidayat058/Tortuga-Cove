@@ -158,6 +158,48 @@ class GameEngine
             return;
         }
 
+        if (($game->game_type ?? 'splendor') === 'wordle') {
+            $playerStates = [];
+            $usedWords = [];
+            foreach ($players as $index => $player) {
+                do {
+                    $secretWord = WordleWordBank::getRandomTargetWord();
+                } while (in_array($secretWord, $usedWords, true) && count($usedWords) < count(WordleWordBank::$targetWords));
+                $usedWords[] = $secretWord;
+
+                $playerStates[$player->id] = [
+                    'user_id' => $player->id,
+                    'name' => $player->name,
+                    'index' => $index,
+                    'secret_word' => $secretWord,
+                    'guesses' => [],
+                    'keyboard' => [],
+                    'solved' => false,
+                    'failed' => false,
+                    'surrendered' => false,
+                    'finish_order' => null,
+                ];
+            }
+
+            $boardState = [
+                'game_type' => 'wordle',
+                'players' => $playerStates,
+                'finished_count' => 0,
+                'log' => [
+                    '⚓ Permainan Sandi Tortuga telah dimulai!',
+                    'Pecahkan 5 huruf sandi rahasia dalam 6 kesempatan sesuai kosakata baku KBBI!',
+                ],
+            ];
+
+            $game->forceFill([
+                'status' => 'playing',
+                'current_player_index' => 0,
+                'board_state' => $boardState,
+            ])->save();
+
+            return;
+        }
+
         $playerCount = count($players);
 
         // Define token count
@@ -790,5 +832,188 @@ class GameEngine
             'current_player_index' => $nextIndex,
             'board_state' => $state,
         ])->save();
+    }
+
+    /**
+     * Evaluate letter feedback colors for Wordle guess against secret word.
+     *
+     * @return array<int, string>
+     */
+    public function evaluateWordleGuess(string $secret, string $guess): array
+    {
+        $secret = strtoupper($secret);
+        $guess = strtoupper($guess);
+        $result = array_fill(0, 5, 'gray');
+        $secretLetters = str_split($secret);
+        $guessLetters = str_split($guess);
+
+        $secretLetterCounts = array_count_values($secretLetters);
+
+        // First pass: Find exact matches (Green)
+        for ($i = 0; $i < 5; $i++) {
+            if ($guessLetters[$i] === $secretLetters[$i]) {
+                $result[$i] = 'green';
+                $secretLetterCounts[$guessLetters[$i]]--;
+            }
+        }
+
+        // Second pass: Find present letters with wrong positions (Yellow)
+        for ($i = 0; $i < 5; $i++) {
+            if ($result[$i] !== 'green') {
+                $letter = $guessLetters[$i];
+                if (isset($secretLetterCounts[$letter]) && $secretLetterCounts[$letter] > 0) {
+                    $result[$i] = 'yellow';
+                    $secretLetterCounts[$letter]--;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Submit a 5-letter guess in Sandi Tortuga (Wordle).
+     */
+    public function submitWordleGuess(Game $game, User $user, string $guess): void
+    {
+        if ($game->status !== 'playing') {
+            throw new \Exception('Permainan tidak sedang berjalan.');
+        }
+
+        $state = $game->board_state;
+        $playerId = $user->id;
+
+        if (! isset($state['players'][$playerId])) {
+            throw new \Exception('Anda bukan bagian dari kru permainan ini.');
+        }
+
+        $player = &$state['players'][$playerId];
+
+        if ($player['solved'] || $player['failed'] || $player['surrendered']) {
+            throw new \Exception('Anda sudah menyelesaikan permainan ini.');
+        }
+
+        $guess = strtoupper(trim($guess));
+
+        if (strlen($guess) !== 5) {
+            throw new \Exception('Kata harus terdiri dari 5 huruf!');
+        }
+
+        if (! ctype_alpha($guess)) {
+            throw new \Exception('Kata hanya boleh berupa huruf alfabet!');
+        }
+
+        if (! WordleWordBank::isValidWord($guess)) {
+            throw new \Exception("Kata '{$guess}' tidak terdaftar dalam kamus KBBI!");
+        }
+
+        $secretWord = $player['secret_word'];
+        $colors = $this->evaluateWordleGuess($secretWord, $guess);
+
+        // Update player's keyboard status
+        if (! isset($player['keyboard'])) {
+            $player['keyboard'] = [];
+        }
+        $guessLetters = str_split($guess);
+        for ($i = 0; $i < 5; $i++) {
+            $char = $guessLetters[$i];
+            $color = $colors[$i];
+            $currentColor = $player['keyboard'][$char] ?? null;
+
+            if ($color === 'green') {
+                $player['keyboard'][$char] = 'green';
+            } elseif ($color === 'yellow' && $currentColor !== 'green') {
+                $player['keyboard'][$char] = 'yellow';
+            } elseif ($color === 'gray' && ! in_array($currentColor, ['green', 'yellow'], true)) {
+                $player['keyboard'][$char] = 'gray';
+            }
+        }
+
+        $player['guesses'][] = [
+            'word' => $guess,
+            'colors' => $colors,
+        ];
+
+        $attemptCount = count($player['guesses']);
+        $isCorrect = ($guess === $secretWord);
+
+        if ($isCorrect) {
+            $player['solved'] = true;
+            $finishedCount = ($state['finished_count'] ?? 0) + 1;
+            $state['finished_count'] = $finishedCount;
+            $player['finish_order'] = $finishedCount;
+
+            $state['log'][] = "🏆 Kapten '{$player['name']}' berhasil memecahkan sandi ({$attemptCount}/6 tebakan) - Juara #{$finishedCount}!";
+
+            if (! $game->winner_id) {
+                $game->winner_id = $playerId;
+            }
+        } elseif ($attemptCount >= 6) {
+            $player['failed'] = true;
+            $finishedCount = ($state['finished_count'] ?? 0) + 1;
+            $state['finished_count'] = $finishedCount;
+
+            $state['log'][] = "💀 Kapten '{$player['name']}' kehabisan tebakan (Kata rahasia: {$secretWord}).";
+        }
+
+        // Check if all players are finished
+        $allFinished = true;
+        foreach ($state['players'] as $p) {
+            if (! $p['solved'] && ! $p['failed'] && ! $p['surrendered']) {
+                $allFinished = false;
+                break;
+            }
+        }
+
+        if ($allFinished) {
+            $game->status = 'finished';
+            $state['log'][] = '⚓ Pertandingan Sandi Tortuga telah selesai untuk seluruh kru!';
+        }
+
+        $game->board_state = $state;
+        $game->save();
+    }
+
+    /**
+     * Action: Surrender in Sandi Tortuga (Wordle).
+     */
+    public function surrenderWordle(Game $game, User $user): void
+    {
+        $state = $game->board_state;
+        $playerId = $user->id;
+
+        if (! isset($state['players'][$playerId])) {
+            throw new \Exception('Anda bukan bagian dari kru permainan ini.');
+        }
+
+        $player = &$state['players'][$playerId];
+
+        if ($player['solved'] || $player['failed'] || $player['surrendered']) {
+            return;
+        }
+
+        $player['surrendered'] = true;
+        $finishedCount = ($state['finished_count'] ?? 0) + 1;
+        $state['finished_count'] = $finishedCount;
+
+        $secretWord = $player['secret_word'] ?? '???';
+        $state['log'][] = "🏳️ Kapten '{$player['name']}' mengibarkan bendera putih dan menyerah (Kata rahasia: {$secretWord}).";
+
+        // Check if all players are finished
+        $allFinished = true;
+        foreach ($state['players'] as $p) {
+            if (! $p['solved'] && ! $p['failed'] && ! $p['surrendered']) {
+                $allFinished = false;
+                break;
+            }
+        }
+
+        if ($allFinished) {
+            $game->status = 'finished';
+            $state['log'][] = '⚓ Pertandingan Sandi Tortuga telah selesai untuk seluruh kru!';
+        }
+
+        $game->board_state = $state;
+        $game->save();
     }
 }
