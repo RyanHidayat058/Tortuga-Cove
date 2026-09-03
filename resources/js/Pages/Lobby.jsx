@@ -416,7 +416,7 @@ export default function Lobby({ games, user, activeTab = 'lobby' }) {
                                                     SANDI TORTUGA (TEBAK KATA)
                                                 </h4>
                                                 <p className={`text-xs mt-2.5 leading-relaxed font-medium ${isDark ? 'text-white/80' : 'text-[#091540]/80'}`}>
-                                                    Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 kesempatan sesuai kosakata baku KBBI! Berlomba memecahkan kata rahasia lebih cepat dari kapten lawan dalam arena duel 2x2.
+                                                    Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 kesempatan sesuai kosakata bahasa Indonesia sehari-hari! Berlomba memecahkan kata rahasia lebih cepat dari kapten lawan dalam arena duel 2x2.
                                                 </p>
                                             </div>
 

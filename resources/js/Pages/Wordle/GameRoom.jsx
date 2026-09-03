@@ -182,7 +182,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                     } else if (errors.guess) {
                         showToast(errors.guess);
                     } else {
-                        showToast('Kata tidak terdaftar dalam kamus KBBI!');
+                        showToast('Kata tidak valid!');
                     }
                 },
             }
@@ -524,7 +524,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                         </h3>
                         <div className="space-y-4 text-xs leading-relaxed">
                             <p>
-                                Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 baris kesempatan tebakan sesuai kosakata baku KBBI!
+                                Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 baris kesempatan tebakan sesuai kosakata bahasa Indonesia sehari-hari!
                             </p>
                             <div className="space-y-2 font-mono">
                                 <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-600/20 border border-emerald-500">
@@ -659,7 +659,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                     <span>📜</span> SANDI TORTUGA
                                 </h1>
                                 <p className={`text-[10px] font-mono ${isDark ? 'text-[#A6B9FF]' : 'text-[#2E438F]'}`}>
-                                    {isSolo ? 'Mode Solo' : `Arena Duel (${totalPlayers} Kapten)`} | Tebak kata 5-huruf KBBI
+                                    {isSolo ? 'Mode Solo' : `Arena Duel (${totalPlayers} Kapten)`} | Tebak kata 5-huruf sehari-hari
                                 </p>
                             </div>
                         </div>
@@ -1025,7 +1025,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                     </h3>
                     <div className="space-y-4 text-xs leading-relaxed">
                         <p>
-                            Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 baris tebakan sesuai kosakata baku KBBI!
+                            Pecahkan 5 huruf sandi rahasia kapal bajak laut dalam 6 baris tebakan sesuai kosakata bahasa Indonesia sehari-hari!
                         </p>
                         <div className="space-y-2 font-mono">
                             <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-600/20 border border-emerald-500">

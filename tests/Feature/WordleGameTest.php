@@ -213,4 +213,15 @@ class WordleGameTest extends TestCase
         $game->refresh();
         $this->assertCount(0, $game->board_state['players'][$user->id]['guesses']);
     }
+
+    public function test_everyday_indonesian_words_like_sujud_and_wujud_are_valid(): void
+    {
+        $this->assertTrue(WordleWordBank::isValidWord('SUJUD'));
+        $this->assertTrue(WordleWordBank::isValidWord('WUJUD'));
+        $this->assertTrue(WordleWordBank::isValidWord('MANDI'));
+        $this->assertTrue(WordleWordBank::isValidWord('SALAT'));
+        $this->assertTrue(WordleWordBank::isValidWord('ZIKIR'));
+        $this->assertFalse(WordleWordBank::isValidWord('XYZ')); // Too short
+        $this->assertFalse(WordleWordBank::isValidWord('XXXXX')); // No vowels
+    }
 }
