@@ -30,7 +30,8 @@ class ProfileUpdateRequest extends FormRequest
             'hashtag' => [
                 'required',
                 'string',
-                'size:4',
+                'min:1',
+                'max:6',
                 'alpha_num',
             ],
             'email' => [
@@ -41,6 +42,19 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+        ];
+    }
+
+    /**
+     * Custom validation messages.
+     */
+    public function messages(): array
+    {
+        return [
+            'username.unique' => 'The pirate tag combination '.$this->username.'#'.$this->hashtag.' is already taken by another pirate!',
+            'hashtag.min' => 'Hashtag must be at least 1 character.',
+            'hashtag.max' => 'Hashtag cannot exceed 6 characters.',
+            'hashtag.alpha_num' => 'Hashtag can only contain letters and numbers.',
         ];
     }
 }

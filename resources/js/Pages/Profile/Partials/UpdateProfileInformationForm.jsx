@@ -27,10 +27,10 @@ export default function UpdateProfileInformation({
         });
 
     useEffect(() => {
-        if (errors.username || errors.hashtag) {
+        if (errors.username && (errors.username.toLowerCase().includes('taken') || errors.username.toLowerCase().includes('already'))) {
             setShowErrorModal(true);
         }
-    }, [errors.username, errors.hashtag]);
+    }, [errors.username]);
 
     const submit = (e) => {
         e.preventDefault();
@@ -39,7 +39,7 @@ export default function UpdateProfileInformation({
 
     const closeErrorModal = () => {
         setShowErrorModal(false);
-        clearErrors('username', 'hashtag');
+        clearErrors('username');
     };
 
     const inputClass = isDark
@@ -97,7 +97,7 @@ export default function UpdateProfileInformation({
                                 id="hashtag"
                                 className={`${inputClass} pl-8 uppercase font-mono tracking-wider`}
                                 value={data.hashtag}
-                                maxLength={4}
+                                maxLength={6}
                                 onChange={(e) => setData('hashtag', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                                 required
                             />
