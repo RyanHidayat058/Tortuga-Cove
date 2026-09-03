@@ -32,7 +32,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
             fetch(route('games.state', uuid))
                 .then((res) => {
                     if (res.status === 404) {
-                        router.visit(route('lobby'));
+                        router.visit(route('dashboard'));
                         return null;
                     }
                     return res.json();
@@ -296,7 +296,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                         <div className={`p-4 md:p-6 rounded-2xl border-2 flex flex-col md:flex-row justify-between items-center gap-4 ${headerBg}`}>
                             <div className="flex items-center gap-3">
                                 <Link
-                                    href={route('lobby')}
+                                    href={route('dashboard')}
                                     className={`px-4 py-2 rounded-xl text-xs font-black uppercase font-mono tracking-wider border-2 transition ${
                                         isDark
                                             ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/20'
@@ -465,8 +465,8 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                         </button>
                                     ) : (
                                         <Link
-                                            href={route('lobby')}
-                                            className="text-xs font-mono font-bold opacity-75 hover:opacity-100 underline"
+                                            href={route('dashboard')}
+                                            className="px-4 py-2 rounded-xl text-xs font-bold text-red-400 hover:text-red-300 font-mono tracking-wider transition"
                                         >
                                             ← Abandon Ship & Leave
                                         </Link>
@@ -645,7 +645,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                     <div className={`p-3 md:p-4 rounded-2xl border-2 flex justify-between items-center gap-4 ${headerBg}`}>
                         <div className="flex items-center gap-3">
                             <Link
-                                href={route('lobby')}
+                                href={route('dashboard')}
                                 className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase font-mono tracking-wider border-2 transition ${
                                     isDark
                                         ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/20'
@@ -1004,7 +1004,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
 
                     <div className="flex justify-end gap-3 font-mono">
                         <Link
-                            href={route('lobby')}
+                            href={route('dashboard')}
                             className={`w-full text-center px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest border-2 transition ${
                                 isDark
                                     ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/30'

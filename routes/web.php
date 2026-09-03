@@ -11,12 +11,10 @@ Route::get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
     // Lobby, Deck, Crew
-    Route::get('/lobby', [GameController::class, 'index'])->name('dashboard');
+    Route::get('/lobby', [GameController::class, 'index'])->name('lobby');
+    Route::get('/dashboard', [GameController::class, 'index'])->name('dashboard');
     Route::get('/deck', [GameController::class, 'indexDeck'])->name('deck');
     Route::get('/crew', [GameController::class, 'indexCrew'])->name('crew');
-    Route::get('/dashboard', function () {
-        return redirect()->route('dashboard');
-    });
 
     // Game Room lifecycle
     Route::post('/games', [GameController::class, 'create'])->name('games.create');
