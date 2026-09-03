@@ -147,6 +147,11 @@ export default function GameRoom({
             };
         });
 
+        // Show immediate feedback if incorrect
+        if (num !== 0 && solutionBoard[r]?.[c] && num !== solutionBoard[r][c]) {
+            showToast(`⚠️ Angka ${num} salah untuk kotak ini! (+1 Kesalahan)`);
+        }
+
         // Send to backend
         router.post(
             route('games.sudoku.fill', uuid),
@@ -159,7 +164,7 @@ export default function GameRoom({
                 },
             }
         );
-    }, [status, selectedCell, myPlayerState, initialBoard, myCurrentBoard, uuid, authUserId]);
+    }, [status, selectedCell, myPlayerState, initialBoard, myCurrentBoard, solutionBoard, uuid, authUserId]);
 
     // Keyboard event listener
     useEffect(() => {
@@ -672,13 +677,14 @@ export default function GameRoom({
                                 >
                                     {myCurrentBoard.map((rowArr, r) =>
                                         rowArr.map((cellVal, c) => {
-                                            const isInitial = initialBoard[r][c] !== 0;
+                                            const isInitial = initialBoard[r]?.[c] !== 0;
                                             const isSelected = selectedRow === r && selectedCol === c;
                                             const isSameRowOrCol = selectedRow === r || selectedCol === c;
                                             const isSameBox =
                                                 Math.floor(selectedRow / 3) === Math.floor(r / 3) &&
                                                 Math.floor(selectedCol / 3) === Math.floor(c / 3);
                                             const isSameNumber = selectedNum !== 0 && cellVal === selectedNum;
+                                            const isError = !isInitial && cellVal !== 0 && solutionBoard[r]?.[c] !== undefined && cellVal !== solutionBoard[r][c];
 
                                             // Thick borders between 3x3 blocks
                                             const borderRight =
@@ -701,7 +707,13 @@ export default function GameRoom({
 
                                             let cellBg = isDark ? 'bg-[#131d35]' : 'bg-white';
                                             if (isSelected) {
-                                                cellBg = 'bg-blue-600 text-white ring-2 ring-amber-400 z-10 shadow-lg';
+                                                cellBg = isError
+                                                    ? 'bg-red-700 text-white ring-2 ring-red-400 z-10 shadow-lg'
+                                                    : 'bg-blue-600 text-white ring-2 ring-amber-400 z-10 shadow-lg';
+                                            } else if (isError) {
+                                                cellBg = isDark
+                                                    ? 'bg-red-950/70 text-red-300 border border-red-500/60 ring-1 ring-red-500/40'
+                                                    : 'bg-red-100 text-red-700 border border-red-400 ring-1 ring-red-300';
                                             } else if (isSameNumber) {
                                                 cellBg = isDark
                                                     ? 'bg-amber-400/20 text-amber-300 font-black'
@@ -710,22 +722,23 @@ export default function GameRoom({
                                                 cellBg = isDark ? 'bg-[#1a2646]' : 'bg-blue-50/70';
                                             }
 
+                                            let textColor = '';
+                                            if (isInitial) {
+                                                textColor = isDark ? 'text-white' : 'text-[#091540]';
+                                            } else if (cellVal !== 0) {
+                                                if (isError) {
+                                                    textColor = isDark ? 'text-red-400 font-black animate-pulse' : 'text-red-600 font-black animate-pulse';
+                                                } else {
+                                                    textColor = isDark ? 'text-cyan-400 font-bold' : 'text-blue-600 font-bold';
+                                                }
+                                            }
+
                                             return (
                                                 <button
                                                     key={`${r}-${c}`}
                                                     type="button"
                                                     onClick={() => setSelectedCell([r, c])}
-                                                    className={`w-full h-full p-0 m-0 flex items-center justify-center font-mono font-black text-sm sm:text-base md:text-xl select-none transition-colors ${borderRight} ${borderBottom} ${cellBg} ${
-                                                        isInitial
-                                                            ? isDark
-                                                                ? 'text-white'
-                                                                : 'text-[#091540]'
-                                                            : cellVal !== 0
-                                                            ? isDark
-                                                                ? 'text-cyan-400 font-bold'
-                                                                : 'text-blue-600 font-bold'
-                                                            : ''
-                                                    }`}
+                                                    className={`w-full h-full p-0 m-0 flex items-center justify-center font-mono font-black text-sm sm:text-base md:text-xl select-none transition-colors ${borderRight} ${borderBottom} ${cellBg} ${textColor}`}
                                                 >
                                                     {cellVal !== 0 ? cellVal : ''}
                                                 </button>
@@ -851,7 +864,8 @@ export default function GameRoom({
                                                     >
                                                         {oppBoard.map((rArr, r) =>
                                                             rArr.map((val, c) => {
-                                                                const isInit = initialBoard[r][c] !== 0;
+                                                                const isInit = initialBoard[r]?.[c] !== 0;
+                                                                const isOppErr = !isInit && val !== 0 && solutionBoard[r]?.[c] !== undefined && val !== solutionBoard[r][c];
                                                                 const bRight = (c + 1) % 3 === 0 && c !== 8 ? 'border-r border-r-[#2E438F]' : '';
                                                                 const bBottom = (r + 1) % 3 === 0 && r !== 8 ? 'border-b border-b-[#2E438F]' : '';
 
@@ -862,7 +876,9 @@ export default function GameRoom({
                                                                             isInit
                                                                                 ? 'bg-current/10 font-bold'
                                                                                 : val !== 0
-                                                                                ? 'bg-cyan-500/20 text-cyan-300 font-bold'
+                                                                                ? isOppErr
+                                                                                    ? 'bg-rose-600/40 text-rose-300 font-black'
+                                                                                    : 'bg-cyan-500/20 text-cyan-300 font-bold'
                                                                                 : ''
                                                                         }`}
                                                                     >
