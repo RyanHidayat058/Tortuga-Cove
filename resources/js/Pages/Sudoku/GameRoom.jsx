@@ -116,6 +116,38 @@ export default function GameRoom({
         });
     }, [gamePlayers, playersMap, authUserId]);
 
+    // Track completed numbers (1-9) that already appear 9 times correctly
+    const { completedNumbers, remainingCounts } = useMemo(() => {
+        const counts = {};
+        for (let num = 1; num <= 9; num++) {
+            counts[num] = 0;
+        }
+
+        if (Array.isArray(myCurrentBoard) && Array.isArray(solutionBoard)) {
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const val = myCurrentBoard[r]?.[c];
+                    // Count only correctly placed numbers
+                    if (val && val >= 1 && val <= 9 && val === solutionBoard[r]?.[c]) {
+                        counts[val] = (counts[val] || 0) + 1;
+                    }
+                }
+            }
+        }
+
+        const completed = new Set();
+        const remaining = {};
+        for (let num = 1; num <= 9; num++) {
+            const placed = counts[num] || 0;
+            remaining[num] = Math.max(0, 9 - placed);
+            if (placed >= 9) {
+                completed.add(num);
+            }
+        }
+
+        return { completedNumbers: completed, remainingCounts: remaining };
+    }, [myCurrentBoard, solutionBoard]);
+
     // Fill / erase cell action
     const handleNumberInput = useCallback((num) => {
         if (status !== 'playing' || !selectedCell || myPlayerState?.solved || myPlayerState?.surrendered) {
@@ -756,20 +788,39 @@ export default function GameRoom({
                                             gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
                                         }}
                                     >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-                                            <button
-                                                key={num}
-                                                type="button"
-                                                onClick={() => handleNumberInput(num)}
-                                                className={`py-3 rounded-xl text-base font-black border-2 transition-all active:scale-95 shadow flex items-center justify-center ${
-                                                    isDark
-                                                        ? 'bg-slate-800 hover:bg-blue-600 text-white border-slate-600 hover:border-blue-400 shadow-slate-900/50'
-                                                        : 'bg-white hover:bg-[#2E438F] hover:text-white text-[#091540] border-[#2E438F]'
-                                                }`}
-                                            >
-                                                {num}
-                                            </button>
-                                        ))}
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => {
+                                            const isCompleted = completedNumbers.has(num);
+
+                                            if (isCompleted) {
+                                                return (
+                                                    <div
+                                                        key={num}
+                                                        className="py-2.5 rounded-xl invisible pointer-events-none select-none"
+                                                        aria-hidden="true"
+                                                    />
+                                                );
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => handleNumberInput(num)}
+                                                    className={`py-2 rounded-xl text-base font-black border-2 transition-all active:scale-95 shadow flex flex-col items-center justify-center relative ${
+                                                        isDark
+                                                            ? 'bg-slate-800 hover:bg-blue-600 text-white border-slate-600 hover:border-blue-400 shadow-slate-900/50'
+                                                            : 'bg-white hover:bg-[#2E438F] hover:text-white text-[#091540] border-[#2E438F]'
+                                                    }`}
+                                                >
+                                                    <span className="leading-tight">{num}</span>
+                                                    <span className={`text-[9px] font-mono leading-none mt-0.5 ${
+                                                        isDark ? 'text-slate-400' : 'text-[#2E438F]/60'
+                                                    }`}>
+                                                        {remainingCounts[num]}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                     <div className="flex gap-2 font-mono">
                                         <button
