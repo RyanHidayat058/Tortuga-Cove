@@ -659,7 +659,11 @@ export default function GameRoom({
 
                                 {/* 9x9 Sudoku Board Grid */}
                                 <div
-                                    className="aspect-square w-full max-w-[420px] mx-auto border-4 border-[#2E438F] rounded-2xl overflow-hidden shadow-2xl bg-black/10 select-none"
+                                    className={`aspect-square w-full max-w-[430px] mx-auto border-4 rounded-2xl overflow-hidden shadow-2xl select-none transition-all ${
+                                        isDark
+                                            ? 'border-slate-700 bg-[#0f172a]'
+                                            : 'border-[#2E438F] bg-slate-100'
+                                    }`}
                                     style={{
                                         display: 'grid',
                                         gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
@@ -677,16 +681,33 @@ export default function GameRoom({
                                             const isSameNumber = selectedNum !== 0 && cellVal === selectedNum;
 
                                             // Thick borders between 3x3 blocks
-                                            const borderRight = (c + 1) % 3 === 0 && c !== 8 ? 'border-r-2 border-r-[#2E438F]' : 'border-r border-r-current/15';
-                                            const borderBottom = (r + 1) % 3 === 0 && r !== 8 ? 'border-b-2 border-b-[#2E438F]' : 'border-b border-b-current/15';
+                                            const borderRight =
+                                                (c + 1) % 3 === 0 && c !== 8
+                                                    ? isDark
+                                                        ? 'border-r-2 border-r-indigo-400/60'
+                                                        : 'border-r-2 border-r-[#2E438F]'
+                                                    : isDark
+                                                    ? 'border-r border-r-slate-700/60'
+                                                    : 'border-r border-r-slate-300/80';
 
-                                            let cellBg = isDark ? 'bg-[#091540]/60' : 'bg-white';
+                                            const borderBottom =
+                                                (r + 1) % 3 === 0 && r !== 8
+                                                    ? isDark
+                                                        ? 'border-b-2 border-b-indigo-400/60'
+                                                        : 'border-b-2 border-b-[#2E438F]'
+                                                    : isDark
+                                                    ? 'border-b border-b-slate-700/60'
+                                                    : 'border-b border-b-slate-300/80';
+
+                                            let cellBg = isDark ? 'bg-[#131d35]' : 'bg-white';
                                             if (isSelected) {
-                                                cellBg = 'bg-[#2E438F] text-white ring-2 ring-[#A6B9FF] z-10';
+                                                cellBg = 'bg-blue-600 text-white ring-2 ring-amber-400 z-10 shadow-lg';
                                             } else if (isSameNumber) {
-                                                cellBg = isDark ? 'bg-indigo-900/70 text-[#A6B9FF]' : 'bg-indigo-100 text-[#091540]';
+                                                cellBg = isDark
+                                                    ? 'bg-amber-400/20 text-amber-300 font-black'
+                                                    : 'bg-amber-100 text-amber-900 font-black';
                                             } else if (isSameRowOrCol || isSameBox) {
-                                                cellBg = isDark ? 'bg-white/10' : 'bg-slate-100';
+                                                cellBg = isDark ? 'bg-[#1a2646]' : 'bg-blue-50/70';
                                             }
 
                                             return (
@@ -694,13 +715,15 @@ export default function GameRoom({
                                                     key={`${r}-${c}`}
                                                     type="button"
                                                     onClick={() => setSelectedCell([r, c])}
-                                                    className={`w-full h-full p-0 m-0 flex items-center justify-center font-mono font-black text-sm sm:text-base md:text-lg select-none transition-colors ${borderRight} ${borderBottom} ${cellBg} ${
+                                                    className={`w-full h-full p-0 m-0 flex items-center justify-center font-mono font-black text-sm sm:text-base md:text-xl select-none transition-colors ${borderRight} ${borderBottom} ${cellBg} ${
                                                         isInitial
                                                             ? isDark
                                                                 ? 'text-white'
                                                                 : 'text-[#091540]'
                                                             : cellVal !== 0
-                                                            ? 'text-cyan-400 font-bold'
+                                                            ? isDark
+                                                                ? 'text-cyan-400 font-bold'
+                                                                : 'text-blue-600 font-bold'
                                                             : ''
                                                     }`}
                                                 >
@@ -712,9 +735,9 @@ export default function GameRoom({
                                 </div>
 
                                 {/* Virtual Keypad Controls */}
-                                <div className="mt-6 space-y-2 max-w-[420px] mx-auto">
+                                <div className="mt-6 space-y-2.5 max-w-[430px] mx-auto">
                                     <div
-                                        className="gap-1 sm:gap-1.5 font-mono"
+                                        className="gap-1.5 font-mono"
                                         style={{
                                             display: 'grid',
                                             gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
@@ -725,9 +748,9 @@ export default function GameRoom({
                                                 key={num}
                                                 type="button"
                                                 onClick={() => handleNumberInput(num)}
-                                                className={`py-2.5 rounded-xl text-sm font-black border-2 transition active:scale-95 shadow flex items-center justify-center ${
+                                                className={`py-3 rounded-xl text-base font-black border-2 transition-all active:scale-95 shadow flex items-center justify-center ${
                                                     isDark
-                                                        ? 'bg-[#2E438F] hover:bg-[#A6B9FF] hover:text-[#091540] text-white border-white/20'
+                                                        ? 'bg-slate-800 hover:bg-blue-600 text-white border-slate-600 hover:border-blue-400 shadow-slate-900/50'
                                                         : 'bg-white hover:bg-[#2E438F] hover:text-white text-[#091540] border-[#2E438F]'
                                                 }`}
                                             >
@@ -739,7 +762,11 @@ export default function GameRoom({
                                         <button
                                             type="button"
                                             onClick={() => handleNumberInput(0)}
-                                            className="w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider border-2 bg-red-900/30 hover:bg-red-800 text-red-300 border-red-500/40 transition active:scale-95 flex items-center justify-center gap-1.5"
+                                            className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider border-2 transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow ${
+                                                isDark
+                                                    ? 'bg-red-950/40 hover:bg-red-900/70 text-red-200 border-red-500/40'
+                                                    : 'bg-red-50 hover:bg-red-100 text-red-700 border-red-300'
+                                            }`}
                                         >
                                             <span>⌫</span> Hapus Angka
                                         </button>
