@@ -62,7 +62,13 @@ export default function GameRoom({
                             }
                         }
                         if (data.board_state) {
-                            setLocalBoardState(data.board_state);
+                            setLocalBoardState((prev) => {
+                                // Only update if stringified state actually changed to avoid re-render lag
+                                if (JSON.stringify(prev) === JSON.stringify(data.board_state)) {
+                                    return prev;
+                                }
+                                return data.board_state;
+                            });
                         }
                     }
                 })
@@ -75,7 +81,12 @@ export default function GameRoom({
     // Keep board state synced
     useEffect(() => {
         if (board_state) {
-            setLocalBoardState(board_state);
+            setLocalBoardState((prev) => {
+                if (JSON.stringify(prev) === JSON.stringify(board_state)) {
+                    return prev;
+                }
+                return board_state;
+            });
         }
     }, [board_state]);
 
@@ -148,23 +159,42 @@ export default function GameRoom({
         return { completedNumbers: completed, remainingCounts: remaining };
     }, [myCurrentBoard, solutionBoard]);
 
-    // Fill / erase cell action
+    // Fill / erase cell action (instant zero-lag optimistic async fetch)
     const handleNumberInput = useCallback((num) => {
         if (status !== 'playing' || !selectedCell || myPlayerState?.solved || myPlayerState?.surrendered) {
             return;
         }
 
         const [r, c] = selectedCell;
-        if (initialBoard[r][c] !== 0) {
+        if (initialBoard[r]?.[c] !== 0) {
             showToast('Angka petunjuk awal tidak bisa diubah!');
             return;
         }
 
-        // Optimistic UI update
+        const previousVal = myCurrentBoard[r]?.[c] || 0;
+        if (previousVal === num) {
+            return; // No change needed
+        }
+
+        // Calculate next board
         const nextBoard = myCurrentBoard.map((rowArr, rowIdx) =>
             rowArr.map((cellVal, colIdx) => (rowIdx === r && colIdx === c ? num : cellVal))
         );
 
+        // Calculate next progress & mistakes optimistically
+        let correctCount = 0;
+        for (let row = 0; row < 9; row++) {
+            for (let col = 0; col < 9; col++) {
+                if (nextBoard[row][col] === solutionBoard[row]?.[col]) {
+                    correctCount++;
+                }
+            }
+        }
+        const nextProgress = Math.round((correctCount / 81) * 100);
+        const isWrong = num !== 0 && solutionBoard[r]?.[c] && num !== solutionBoard[r][c];
+        const nextMistakes = (myPlayerState?.mistakes_count || 0) + (isWrong ? 1 : 0);
+
+        // Immediate zero-lag optimistic state update
         setLocalBoardState((prev) => {
             if (!prev) return prev;
             return {
@@ -174,28 +204,44 @@ export default function GameRoom({
                     [authUserId]: {
                         ...prev.players[authUserId],
                         current_board: nextBoard,
+                        progress: nextProgress,
+                        mistakes_count: nextMistakes,
+                        solved: correctCount === 81,
                     },
                 },
             };
         });
 
         // Show immediate feedback if incorrect
-        if (num !== 0 && solutionBoard[r]?.[c] && num !== solutionBoard[r][c]) {
+        if (isWrong) {
             showToast(`⚠️ Angka ${num} salah untuk kotak ini! (+1 Kesalahan)`);
         }
 
-        // Send to backend
-        router.post(
-            route('games.sudoku.fill', uuid),
-            { row: r, col: c, val: num },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onError: (err) => {
-                    if (err?.action_error) showToast(err.action_error);
-                },
-            }
-        );
+        // Send non-blocking background fetch
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        fetch(route('games.sudoku.fill', uuid), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify({ row: r, col: c, val: num }),
+        })
+            .then(async (res) => {
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (data.status === 'finished') {
+                        setShowVictoryModal(true);
+                    }
+                    if (data.board_state) {
+                        setLocalBoardState(data.board_state);
+                    }
+                } else if (data.error) {
+                    showToast(data.error);
+                }
+            })
+            .catch(() => {});
     }, [status, selectedCell, myPlayerState, initialBoard, myCurrentBoard, solutionBoard, uuid, authUserId]);
 
     // Keyboard event listener

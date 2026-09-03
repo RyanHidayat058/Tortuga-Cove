@@ -499,8 +499,23 @@ class GameController extends Controller
                 (int) $request->input('val')
             );
 
+            if ($request->wantsJson()) {
+                $game->refresh();
+
+                return response()->json([
+                    'success' => true,
+                    'status' => $game->status,
+                    'winner_id' => $game->winner_id,
+                    'board_state' => $game->board_state,
+                ]);
+            }
+
             return back();
         } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['error' => $e->getMessage()], 422);
+            }
+
             return back()->withErrors(['action_error' => $e->getMessage()]);
         }
     }
