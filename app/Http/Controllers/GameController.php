@@ -179,13 +179,23 @@ class GameController extends Controller
                 'current_player_index' => $game->current_player_index,
                 'winner_id' => $game->winner_id,
                 'board_state' => $game->board_state,
+                'game_type' => $game->game_type,
+                'max_players' => $game->max_players,
             ],
             'gamePlayers' => $game->gamePlayers->map(fn ($gp) => [
                 'user_id' => $gp->user_id,
-                'name' => $gp->user->username,
+                'name' => $gp->user?->name ?? 'Pirate',
+                'username' => $gp->user?->username ?? '',
+                'hashtag' => $gp->user?->hashtag ?? '0000',
                 'is_creator' => $gp->user_id === $game->creator_id,
                 'player_index' => $gp->player_index,
                 'is_ready' => (bool) $gp->is_ready,
+                'user' => [
+                    'id' => $gp->user?->id,
+                    'name' => $gp->user?->name,
+                    'username' => $gp->user?->username,
+                    'hashtag' => $gp->user?->hashtag,
+                ],
             ])->toArray(),
             'authUserId' => $user->id,
         ]);
@@ -208,8 +218,8 @@ class GameController extends Controller
         }
 
         $players = $game->gamePlayers;
-        if (count($players) < 2) {
-            return back()->withErrors(['error' => 'Ye need at least 2 pirates to start a game!']);
+        if (($game->max_players ?? 4) > 1 && count($players) < 2) {
+            return back()->withErrors(['error' => 'Ye need at least 2 pirates to start a multiplayer game!']);
         }
 
         // Check if everyone is ready

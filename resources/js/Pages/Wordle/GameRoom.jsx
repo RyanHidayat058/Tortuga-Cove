@@ -387,7 +387,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-bold text-sm">
-                                                            {gp.user?.name || `Pirate #${gp.user_id}`}
+                                                            {gp.name || gp.user?.name || `Pirate #${gp.user_id}`}
                                                         </span>
                                                         {isCaptain && (
                                                             <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-amber-500 text-[#091540] font-mono">
@@ -403,7 +403,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                                         )}
                                                     </div>
                                                     <p className="text-xs font-mono opacity-70 mt-0.5">
-                                                        {gp.user?.username ? `@${gp.user.username}#${gp.user.hashtag || '0000'}` : 'Crew Member'}
+                                                        {(gp.username || gp.user?.username) ? `@${gp.username || gp.user?.username}#${gp.hashtag || gp.user?.hashtag || '0000'}` : 'Crew Member'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -609,7 +609,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
     // RENDER: IN-GAME BATTLE ARENA (1 Board, 2 Boards, or 2x2 Grid)
     const allPlayersList = gamePlayers.map((gp) => {
         const pState = playersState[gp.user_id] || {
-            name: gp.user?.name || `Pirate #${gp.user_id}`,
+            name: gp.name || gp.user?.name || `Pirate #${gp.user_id}`,
             guesses: [],
             solved: false,
             failed: false,
@@ -620,6 +620,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
         return {
             ...gp,
             ...pState,
+            name: pState.name || gp.name || gp.user?.name || `Pirate #${gp.user_id}`,
             isMe: gp.user_id === authUserId,
         };
     });
@@ -720,7 +721,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                             <span className="text-base">{isMe ? '👑' : '🏴‍☠️'}</span>
                                             <div>
                                                 <h4 className="text-xs md:text-sm font-black font-mono uppercase tracking-wider">
-                                                    {player.user?.name || player.name} {isMe && '(Anda)'}
+                                                    {player.name || player.user?.name || 'Pirate'} {isMe && '(Anda)'}
                                                 </h4>
                                                 <p className="text-[10px] font-mono opacity-70">
                                                     Percobaan: {guesses.length}/6
@@ -981,7 +982,7 @@ export default function GameRoom({ game, gamePlayers, authUserId }) {
                                     <div className="flex items-center gap-3">
                                         <span className="font-black text-sm">#{idx + 1}</span>
                                         <div>
-                                            <p className="font-bold">{p.user?.name || p.name} {p.isMe && '(Anda)'}</p>
+                                            <p className="font-bold">{p.name || p.user?.name || 'Pirate'} {p.isMe && '(Anda)'}</p>
                                             <p className="text-[10px] opacity-75">Kata: <strong>{p.secret_word || '???'}</strong></p>
                                         </div>
                                     </div>
