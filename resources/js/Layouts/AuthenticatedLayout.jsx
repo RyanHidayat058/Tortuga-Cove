@@ -87,20 +87,33 @@ export default function AuthenticatedLayout({ header, children }) {
                                         </button>
                                     </Dropdown.Trigger>
 
-                                    <Dropdown.Content className="border border-white/20 bg-[#091540] text-white rounded-xl shadow-2xl overflow-hidden">
+                                    <Dropdown.Content className={`border-2 rounded-2xl shadow-2xl overflow-hidden py-1.5 ${
+                                        isDark
+                                            ? 'bg-[#091540] border-white/30 text-white'
+                                            : 'bg-white border-[#2E438F] text-[#091540]'
+                                    }`}>
                                         <Dropdown.Link
                                             href={route('profile.edit')}
-                                            className="font-bold text-white hover:bg-[#2E438F] px-4 py-2 text-xs"
+                                            className={`font-black font-mono tracking-wide px-4 py-2.5 text-xs flex items-center gap-2 transition ${
+                                                isDark
+                                                    ? 'text-white hover:bg-[#2E438F] hover:text-white'
+                                                    : 'text-[#091540] hover:bg-[#A6B9FF]/30 hover:text-[#091540]'
+                                            }`}
                                         >
-                                            My Profile
+                                            <span>🏴‍☠️</span> My Profile
                                         </Dropdown.Link>
+                                        <div className={`my-1 border-t ${isDark ? 'border-white/20' : 'border-[#2E438F]/20'}`} />
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
                                             as="button"
-                                            className="font-bold text-white hover:bg-[#2E438F] px-4 py-2 text-xs"
+                                            className={`font-black font-mono tracking-wide px-4 py-2.5 text-xs flex items-center gap-2 transition w-full text-left ${
+                                                isDark
+                                                    ? 'text-red-400 hover:bg-red-950/60 hover:text-red-300'
+                                                    : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+                                            }`}
                                         >
-                                            Abandon Ship (Log Out)
+                                            <span>⚓</span> Abandon Ship (Log Out)
                                         </Dropdown.Link>
                                     </Dropdown.Content>
                                 </Dropdown>

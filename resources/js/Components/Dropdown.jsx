@@ -39,6 +39,7 @@ const Content = ({
     align = 'right',
     width = '48',
     contentClasses = 'py-1 bg-white',
+    className = '',
     children,
 }) => {
     const { open, setOpen } = useContext(DropDownContext);
@@ -57,6 +58,8 @@ const Content = ({
         widthClasses = 'w-48';
     }
 
+    const mergedClasses = className || contentClasses;
+
     return (
         <>
             <Transition
@@ -69,13 +72,13 @@ const Content = ({
                 leaveTo="opacity-0 scale-95"
             >
                 <div
-                    className={`absolute z-50 mt-2 rounded-md shadow-lg ${alignmentClasses} ${widthClasses}`}
+                    className={`absolute z-50 mt-2 rounded-xl shadow-2xl ${alignmentClasses} ${widthClasses}`}
                     onClick={() => setOpen(false)}
                 >
                     <div
                         className={
-                            `rounded-md ring-1 ring-black ring-opacity-5 ` +
-                            contentClasses
+                            `rounded-xl overflow-hidden ` +
+                            mergedClasses
                         }
                     >
                         {children}
@@ -91,7 +94,7 @@ const DropdownLink = ({ className = '', children, ...props }) => {
         <Link
             {...props}
             className={
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-[#2E438F] transition duration-150 ease-in-out hover:bg-[#A6B9FF]/20 focus:bg-[#A6B9FF]/20 focus:outline-none ' +
+                'block w-full px-4 py-2 text-start text-xs font-bold leading-5 transition duration-150 ease-in-out focus:outline-none ' +
                 className
             }
         >
